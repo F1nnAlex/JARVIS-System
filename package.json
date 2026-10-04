@@ -1,0 +1,60 @@
+{
+  "name": "jarvis-system",
+  "productName": "JARVIS",
+  "version": "0.1.0",
+  "description": "A voice-controlled JARVIS desktop assistant with an Iron Man style HUD, powered by Claude.",
+  "main": "src/main/main.js",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "check": "node --check src/main/main.js && node --check src/main/brain.js && node --check src/main/settings.js && node --check src/preload.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/F1nnAlex/JARVIS-System.git"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@huggingface/transformers": "^4.3.0"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.f1nnalex.jarvis",
+    "productName": "JARVIS",
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "!node_modules/onnxruntime-node/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/onnxruntime-web/dist/*.wasm"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "JARVIS listens for your voice commands."
+      }
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

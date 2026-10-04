@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co https://api.open-meteo.com https://geocoding-api.open-meteo.com">
+  <title>J.A.R.V.I.S.</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-state="boot">
+  <canvas id="backdrop" aria-hidden="true"></canvas>
+
+  <header class="titlebar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <span class="brand-name">J.A.R.V.I.S.</span>
+      <span class="brand-sub">Just A Rather Very Intelligent System</span>
+    </div>
+    <div class="window-buttons">
+      <button class="win-btn" data-action="settings" title="Settings (Ctrl+,)">
+        <svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8.6 4.9-1.9-.4a7 7 0 0 1-.6 1.5l1.1 1.6-1.6 1.6-1.6-1.1a7 7 0 0 1-1.5.6l-.4 1.9h-2.2l-.4-1.9a7 7 0 0 1-1.5-.6l-1.6 1.1-1.6-1.6 1.1-1.6a7 7 0 0 1-.6-1.5l-1.9-.4v-2.2l1.9-.4a7 7 0 0 1 .6-1.5L5.3 6.9l1.6-1.6 1.6 1.1a7 7 0 0 1 1.5-.6l.4-1.9h2.2l.4 1.9a7 7 0 0 1 1.5.6l1.6-1.1 1.6 1.6-1.1 1.6a7 7 0 0 1 .6 1.5l1.9.4Z"/></svg>
+      </button>
+      <button class="win-btn" data-action="fullscreen" title="Full screen (F11)">
+        <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+      <button class="win-btn" data-action="minimize" title="Minimize">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+      </button>
+      <button class="win-btn close" data-action="close" title="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="hud">
+    <aside class="column left">
+      <section class="panel clock-panel">
+        <h2>Local time</h2>
+        <div class="clock" id="clock">00:00</div>
+        <div class="clock-sub"><span id="clock-seconds">00</span><span id="date">---</span></div>
+      </section>
+
+      <section class="panel">
+        <h2>Environment</h2>
+        <div class="weather" id="weather">
+          <div class="weather-temp" id="weather-temp">--°</div>
+          <div class="weather-detail">
+            <div id="weather-desc">Set your location in settings</div>
+            <div class="muted" id="weather-place"></div>
+          </div>
+        </div>
+        <div class="kv-grid" id="weather-grid">
+          <span>Wind</span><b id="weather-wind">--</b>
+          <span>Humidity</span><b id="weather-humidity">--</b>
+          <span>High / Low</span><b id="weather-hilo">--</b>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>System diagnostics</h2>
+        <div class="meter">
+          <div class="meter-label"><span>CPU</span><b id="cpu-value">--%</b></div>
+          <div class="meter-bar"><i id="cpu-bar"></i></div>
+        </div>
+        <canvas class="sparkline" id="cpu-spark" width="300" height="46"></canvas>
+        <div class="meter">
+          <div class="meter-label"><span>Memory</span><b id="mem-value">--</b></div>
+          <div class="meter-bar"><i id="mem-bar"></i></div>
+        </div>
+        <div class="meter" id="battery-meter" hidden>
+          <div class="meter-label"><span>Power</span><b id="battery-value">--</b></div>
+          <div class="meter-bar"><i id="battery-bar"></i></div>
+        </div>
+        <div class="kv-grid small">
+          <span>Host</span><b id="sys-host">--</b>
+          <span>Cores</span><b id="sys-cores">--</b>
+          <span>Uptime</span><b id="sys-uptime">--</b>
+          <span>Platform</span><b id="sys-platform">--</b>
+        </div>
+      </section>
+    </aside>
+
+    <section class="core">
+      <div class="reactor-wrap">
+        <canvas id="reactor" aria-label="JARVIS status reactor. Click to talk."></canvas>
+        <div class="reactor-hint">Click the reactor or press <kbd>Space</kbd> to talk</div>
+      </div>
+      <div class="status-line">
+        <span class="status-dot"></span>
+        <span id="status-text">Booting</span>
+      </div>
+      <div class="caption" id="caption" aria-live="polite"></div>
+    </section>
+
+    <aside class="column right">
+      <section class="panel log-panel">
+        <h2>Comms log <button class="text-btn" id="clear-log" title="Clear conversation">Reset</button></h2>
+        <div class="log" id="log"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Subsystems</h2>
+        <ul class="subsystems">
+          <li><span>Neural uplink</span><b id="sub-brain" class="tag">--</b></li>
+          <li><span>Speech recognition</span><b id="sub-ears" class="tag">--</b></li>
+          <li><span>Voice synthesis</span><b id="sub-voice" class="tag">--</b></li>
+          <li><span>Microphone</span><b id="sub-mic" class="tag">--</b></li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="command-bar">
+    <button class="mode-btn" id="wake-toggle" title="Toggle wake word">
+      <span class="mode-led"></span><span id="wake-label">Wake word</span>
+    </button>
+    <form id="command-form" autocomplete="off">
+      <input id="command-input" type="text" placeholder="Type a command, or say “Jarvis…”" spellcheck="false">
+      <button type="submit" class="send-btn" title="Send">
+        <svg viewBox="0 0 24 24"><path d="M4 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+    <button class="mode-btn" id="mic-toggle" title="Mute or unmute the microphone (M)">
+      <span class="mode-led"></span><span id="mic-label">Mic live</span>
+    </button>
+  </footer>
+
+  <div class="boot" id="boot">
+    <div class="boot-inner">
+      <div class="boot-title">J.A.R.V.I.S.</div>
+      <div class="boot-lines" id="boot-lines"></div>
+    </div>
+  </div>
+
+  <aside class="settings" id="settings" aria-hidden="true">
+    <div class="settings-head">
+      <h2>Configuration</h2>
+      <button class="win-btn" id="settings-close" title="Close settings">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <form id="settings-form" class="settings-body">
+      <fieldset>
+        <legend>Neural uplink (Claude)</legend>
+        <label>Anthropic API key
+          <input type="password" name="apiKey" placeholder="sk-ant-…" autocomplete="off">
+        </label>
+        <p class="hint" id="api-key-status"></p>
+        <p class="hint">Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>. It is stored encrypted on this computer only.</p>
+        <label>Model
+          <input type="text" name="model" spellcheck="false">
+        </label>
+        <label>Thinking effort
+          <select name="effort">
+            <option value="low">Low (fastest replies)</option>
+            <option value="medium">Medium</option>
+            <option value="high">High (most thorough)</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" name="webSearch"> Allow web search for live information</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>You</legend>
+        <label>Your name
+          <input type="text" name="userName" placeholder="Optional">
+        </label>
+        <label>Address me as
+          <input type="text" name="addressAs" placeholder="e.g. sir, ma’am, boss, or your name">
+        </label>
+        <label>Location (for weather)
+          <input type="text" name="location" placeholder="e.g. London">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Voice</legend>
+        <label>JARVIS voice
+          <select name="voiceName" id="voice-select"></select>
+        </label>
+        <p class="hint" id="voice-hint"></p>
+        <label>Speed <output id="rate-out"></output>
+          <input type="range" name="voiceRate" min="0.6" max="1.6" step="0.05">
+        </label>
+        <label>Pitch <output id="pitch-out"></output>
+          <input type="range" name="voicePitch" min="0.5" max="1.5" step="0.05">
+        </label>
+        <button type="button" class="ghost-btn" id="voice-test">Test voice</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Listening</legend>
+        <label class="check"><input type="checkbox" name="wakeWord"> Only respond when I say “Jarvis”</label>
+        <label>Microphone sensitivity <output id="sens-out"></output>
+          <input type="range" name="micSensitivity" min="0" max="1" step="0.05">
+        </label>
+        <label>Speech recognition model
+          <select name="whisperModel">
+            <option value="onnx-community/whisper-tiny.en">Tiny (fastest, ~40 MB)</option>
+            <option value="onnx-community/whisper-base.en">Base (balanced, ~80 MB)</option>
+            <option value="onnx-community/whisper-small.en">Small (most accurate, ~250 MB)</option>
+          </select>
+        </label>
+        <p class="hint">Speech is transcribed on this computer. The model downloads once.</p>
+      </fieldset>
+
+      <div class="settings-actions">
+        <button type="submit" class="primary-btn">Save</button>
+      </div>
+    </form>
+  </aside>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
